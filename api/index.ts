@@ -49,6 +49,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
+const router = express.Router();
+
 // Helper to safely stringify data that might contain BigInt
 const safeJsonStringify = (data: any) => {
   return JSON.stringify(data, (key, value) =>
@@ -130,7 +132,7 @@ const autoCleanupStorage = async () => {
 };
 
 // Supabase Status check for Admin
-app.get("/supabase-status", async (req, res) => {
+router.get("/supabase-status", async (req, res) => {
   try {
     if (!supabase) {
       return res.json({ 
@@ -158,7 +160,7 @@ app.get("/supabase-status", async (req, res) => {
 });
 
 // API Routes
-app.get("/data", async (req, res) => {
+router.get("/data", async (req, res) => {
   try {
     if (!supabase) {
       console.error("Supabase client not initialized. Check environment variables.");
@@ -278,7 +280,7 @@ app.get("/data", async (req, res) => {
   }
 });
 
-app.post("/users", async (req, res) => {
+router.post("/users", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const incomingUsers = req.body;
@@ -305,7 +307,7 @@ app.post("/users", async (req, res) => {
   }
 });
 
-app.post("/loans", async (req, res) => {
+router.post("/loans", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const incomingLoans = req.body;
@@ -332,7 +334,7 @@ app.post("/loans", async (req, res) => {
   }
 });
 
-app.post("/notifications", async (req, res) => {
+router.post("/notifications", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const incomingNotifs = req.body;
@@ -359,7 +361,7 @@ app.post("/notifications", async (req, res) => {
   }
 });
 
-app.post("/budget", async (req, res) => {
+router.post("/budget", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { budget } = req.body;
@@ -372,7 +374,7 @@ app.post("/budget", async (req, res) => {
   }
 });
 
-app.post("/rankProfit", async (req, res) => {
+router.post("/rankProfit", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { rankProfit } = req.body;
@@ -385,7 +387,7 @@ app.post("/rankProfit", async (req, res) => {
   }
 });
 
-app.post("/loanProfit", async (req, res) => {
+router.post("/loanProfit", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { loanProfit } = req.body;
@@ -398,7 +400,7 @@ app.post("/loanProfit", async (req, res) => {
   }
 });
 
-app.post("/monthlyStats", async (req, res) => {
+router.post("/monthlyStats", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { monthlyStats } = req.body;
@@ -411,7 +413,7 @@ app.post("/monthlyStats", async (req, res) => {
   }
 });
 
-app.delete("/users/:id", async (req, res) => {
+router.delete("/users/:id", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const userId = req.params.id;
@@ -427,7 +429,7 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
-app.post("/sync", async (req, res) => {
+router.post("/sync", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { users, loans, notifications, budget, rankProfit, loanProfit, monthlyStats } = req.body;
@@ -477,11 +479,15 @@ app.post("/sync", async (req, res) => {
   }
 });
 
+// Mount router on both /api and root to handle different Vercel routing scenarios
+app.use("/api", router);
+app.use("/", router);
+
 // 404 handler for API routes
 app.use((req, res) => {
   res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
 });
 
-// Export the app instead of a full app for better integration
-export { app as router };
+// Export the router and app for different integration scenarios
+export { router };
 export default app;
