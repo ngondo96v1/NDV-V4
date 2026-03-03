@@ -186,19 +186,33 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, loans,
           const userLoans = [...loans]
             .filter(l => l.userId === u.id)
             .sort((a, b) => {
-              const aIsSettled = ['ĐÃ TẤT TOÁN', 'BỊ TỪ CHỐI'].includes(a.status);
-              const bIsSettled = ['ĐÃ TẤT TOÁN', 'BỊ TỪ CHỐI'].includes(b.status);
-              
-              if (aIsSettled !== bIsSettled) {
-                return aIsSettled ? 1 : -1;
+              const getPriority = (status: string) => {
+                switch (status) {
+                  case 'CHỜ DUYỆT': return 0;
+                  case 'CHỜ TẤT TOÁN': return 1;
+                  case 'ĐÃ DUYỆT': return 2;
+                  case 'ĐANG GIẢI NGÂN': return 3;
+                  case 'ĐANG NỢ': return 4;
+                  case 'ĐANG ĐỐI SOÁT': return 5;
+                  case 'ĐÃ TẤT TOÁN': return 10;
+                  case 'BỊ TỪ CHỐI': return 11;
+                  default: return 6;
+                }
+              };
+
+              const priorityA = getPriority(a.status);
+              const priorityB = getPriority(b.status);
+
+              if (priorityA !== priorityB) {
+                return priorityA - priorityB;
               }
               
-              // Sort by updatedAt descending
+              // Sort by updatedAt descending within same priority
               if (a.updatedAt !== b.updatedAt) {
                 return (b.updatedAt || 0) - (a.updatedAt || 0);
               }
 
-              // Fallback to parsing createdAt if updatedAt is same or missing
+              // Fallback to parsing createdAt
               const parseCreatedAt = (str: string) => {
                 try {
                   const [time, date] = str.split(' ');
@@ -415,24 +429,41 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, loans,
                            const statusStyles = getStatusStyles(loan.status, isOverdue);
 
                            return (
-                             <div key={loan.id} className={`bg-black/40 border rounded-2xl p-4 space-y-4 shadow-inner ${isOverdue ? 'border-red-600/30 ring-1 ring-red-600/10' : 'border-white/5'}`}>
-                                <div className="flex justify-between items-start">
-                                   <div className="flex-1">
-                                      <div className="flex items-center gap-1.5 mb-0.5">
-                                        <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest">{loan.id}</p>
-                                        <button onClick={() => setSelectedContract({ loan, owner: u })} className="w-5 h-5 bg-white/5 rounded-md flex items-center justify-center text-gray-500 hover:text-[#ff8c00]"><Eye size={12} /></button>
-                                      </div>
-                                      <h4 className="text-base font-black text-white leading-none">{loan.amount.toLocaleString()} đ</h4>
-                                   </div>
-                                   <div className={`px-2.5 py-1 rounded-lg text-[7px] font-black uppercase flex items-center gap-1 ${statusStyles}`}>
-                                      {isOverdue ? 'QUÁ HẠN' : loan.status}
-                                      {loan.status === 'CHỜ TẤT TOÁN' && (
-                                        <span className="bg-white/20 px-1 rounded text-[6px] ml-1">
-                                          {loan.settlementType === 'PRINCIPAL' ? 'VG' : 'TT'}
-                                        </span>
-                                      )}
-                                   </div>
-                                </div>
+                            <div key={loan.id} className={`bg-black/40 border rounded-2xl p-4 space-y-4 shadow-inner ${isOverdue ? 'border-red-600/30 ring-1 ring-red-600/10' : 'border-white/5'}`}>
+                               <div className="flex justify-between items-start">
+                                  <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-500">
+                                        <FileText size={18} />
+                                     </div>
+                                     <div>
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                           <h4 className="text-base font-black text-white leading-none">{loan.amount.toLocaleString()} đ</h4>
+                                           <span className="text-[7px] font-black text-gray-600 uppercase tracking-widest">#{loan.id}</span>
+                                           <button onClick={() => setSelectedContract({ loan, owner: u })} className="w-5 h-5 bg-white/5 rounded-md flex items-center justify-center text-gray-500 hover:text-[#ff8c00]"><Eye size={12} /></button>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                           <div className={`w-1 h-1 rounded-full ${loan.status === 'ĐÃ TẤT TOÁN' ? 'bg-green-500' : isOverdue ? 'bg-red-500 animate-pulse' : 'bg-orange-500 animate-pulse'}`}></div>
+                                           <span className={`text-[7px] font-black uppercase ${statusStyles.split(' ').pop()}`}>
+                                              {isOverdue ? 'QUÁ HẠN' : loan.status}
+                                              {loan.status === 'CHỜ TẤT TOÁN' && (
+                                                <span className="bg-white/20 px-1 rounded text-[6px] ml-1">
+                                                  {loan.settlementType === 'PRINCIPAL' ? 'VG' : 'TT'}
+                                                </span>
+                                              )}
+                                           </span>
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
+
+                               {loan.rejectionReason && (loan.status === 'BỊ TỪ CHỐI' || loan.status === 'ĐANG NỢ') && (
+                                 <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-2 flex items-center justify-center gap-2">
+                                   <AlertCircle size={10} className="text-red-500 shrink-0" />
+                                   <p className="text-[7px] font-black text-red-500/80 uppercase tracking-widest text-center">
+                                     Lý do: {loan.rejectionReason}
+                                   </p>
+                                 </div>
+                               )}
 
                                 {loan.status === 'CHỜ TẤT TOÁN' && (
                                   <div className="space-y-2.5 bg-blue-500/5 border border-blue-500/20 rounded-xl p-3">
@@ -598,6 +629,19 @@ const AdminUserManagement: React.FC<AdminUserManagementProps> = ({ users, loans,
                                       </p>
                                     </div>
                                   )}
+
+                                  <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                                    <div className="flex gap-2.5">
+                                      <p className="text-[7px] font-bold text-gray-700 uppercase">Hạn: {loan.date}</p>
+                                      <p className="text-[7px] font-bold text-gray-700 uppercase">Tạo: {loan.createdAt}</p>
+                                    </div>
+                                    {isOverdue && (
+                                      <div className="text-right">
+                                        <p className="text-[6px] font-black text-gray-600 uppercase tracking-widest leading-none">Phí phạt trễ hạn</p>
+                                        <p className="text-[9px] font-black text-red-500">{(loan.fine || 0).toLocaleString()} đ</p>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                              </div>
                            );

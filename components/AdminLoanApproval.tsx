@@ -37,6 +37,34 @@ const AdminLoanApproval: React.FC<AdminLoanApprovalProps> = ({ loans, isGlobalPr
     groupedLoans[uid].loans.push(loan);
   });
 
+  // Sort loans within each group
+  Object.keys(groupedLoans).forEach(uid => {
+    groupedLoans[uid].loans.sort((a, b) => {
+      const getPriority = (status: string) => {
+        switch (status) {
+          case 'CHỜ DUYỆT': return 0;
+          case 'CHỜ TẤT TOÁN': return 1;
+          case 'ĐÃ DUYỆT': return 2;
+          case 'ĐANG GIẢI NGÂN': return 3;
+          case 'ĐANG NỢ': return 4;
+          case 'ĐANG ĐỐI SOÁT': return 5;
+          case 'ĐÃ TẤT TOÁN': return 10;
+          case 'BỊ TỪ CHỐI': return 11;
+          default: return 6;
+        }
+      };
+
+      const priorityA = getPriority(a.status);
+      const priorityB = getPriority(b.status);
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+  });
+
   const users = Object.keys(groupedLoans).filter(uid => 
     groupedLoans[uid].name.toLowerCase().includes(searchTerm.toLowerCase()) || uid.includes(searchTerm)
   );
@@ -140,15 +168,25 @@ const AdminLoanApproval: React.FC<AdminLoanApprovalProps> = ({ loans, isGlobalPr
                       const statusStyles = getStatusStyles(loan.status, isOverdue);
 
                       return (
-                        <div key={loan.id} className={`bg-black/40 border rounded-2xl p-4 space-y-3 ${isOverdue ? 'border-red-600/30 ring-1 ring-red-600/10' : 'border-white/5'}`}>
+                        <div key={loan.id} className={`bg-black/40 border rounded-2xl p-4 space-y-4 shadow-inner ${isOverdue ? 'border-red-600/30 ring-1 ring-red-600/10' : 'border-white/5'}`}>
                           <div className="flex justify-between items-start">
-                            <div>
-                              <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-0.5">{loan.id}</p>
-                              <h4 className="text-base font-black text-white">{loan.amount.toLocaleString()} đ</h4>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-500">
+                                <ImageIcon size={18} />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <h4 className="text-base font-black text-white leading-none">{loan.amount.toLocaleString()} đ</h4>
+                                  <span className="text-[7px] font-black text-gray-600 uppercase tracking-widest">#{loan.id}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <div className={`w-1 h-1 rounded-full ${loan.status === 'ĐÃ TẤT TOÁN' ? 'bg-green-500' : isOverdue ? 'bg-red-500 animate-pulse' : 'bg-orange-500 animate-pulse'}`}></div>
+                                  <span className={`text-[7px] font-black uppercase ${statusStyles.split(' ').pop()}`}>
+                                    {isOverdue ? 'QUÁ HẠN' : loan.status}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <span className={`text-[7px] font-black px-2 py-0.5 rounded-md uppercase ${statusStyles}`}>
-                              {isOverdue ? 'QUÁ HẠN' : loan.status}
-                            </span>
                           </div>
 
                           {loan.status === 'CHỜ TẤT TOÁN' && (
@@ -293,6 +331,29 @@ const AdminLoanApproval: React.FC<AdminLoanApprovalProps> = ({ loans, isGlobalPr
                                 )}
                               </div>
                             )}
+                            {['CHỜ DUYỆT', 'ĐÃ DUYỆT'].includes(loan.status) && (
+                              <div className="flex flex-col items-center justify-center gap-1 py-2.5 bg-white/[0.03] border border-white/5 rounded-xl">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Số tiền Thực Giải ngân:</span>
+                                </div>
+                                <p className="text-xs font-black text-white tracking-tight">
+                                  {(loan.amount * 0.85).toLocaleString()} VNĐ
+                                </p>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                              <div className="flex gap-2.5">
+                                <p className="text-[7px] font-bold text-gray-700 uppercase">Hạn: {loan.date}</p>
+                                <p className="text-[7px] font-bold text-gray-700 uppercase">Tạo: {loan.createdAt}</p>
+                              </div>
+                              {isOverdue && (
+                                <div className="text-right">
+                                  <p className="text-[6px] font-black text-gray-600 uppercase tracking-widest leading-none">Phí phạt trễ hạn</p>
+                                  <p className="text-[9px] font-black text-red-500">{(loan.fine || 0).toLocaleString()} đ</p>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

@@ -160,7 +160,7 @@ router.get("/supabase-status", async (req, res) => {
 });
 
 // API Routes
-router.get("/data", async (req, res) => {
+app.get("/data", async (req, res) => {
   try {
     if (!supabase) {
       console.error("Supabase client not initialized. Check environment variables.");
@@ -280,7 +280,7 @@ router.get("/data", async (req, res) => {
   }
 });
 
-router.post("/users", async (req, res) => {
+app.post("/users", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const incomingUsers = req.body;
@@ -307,7 +307,7 @@ router.post("/users", async (req, res) => {
   }
 });
 
-router.post("/loans", async (req, res) => {
+app.post("/loans", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const incomingLoans = req.body;
@@ -334,7 +334,7 @@ router.post("/loans", async (req, res) => {
   }
 });
 
-router.post("/notifications", async (req, res) => {
+app.post("/notifications", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const incomingNotifs = req.body;
@@ -361,7 +361,7 @@ router.post("/notifications", async (req, res) => {
   }
 });
 
-router.post("/budget", async (req, res) => {
+app.post("/budget", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { budget } = req.body;
@@ -374,7 +374,7 @@ router.post("/budget", async (req, res) => {
   }
 });
 
-router.post("/rankProfit", async (req, res) => {
+app.post("/rankProfit", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { rankProfit } = req.body;
@@ -387,7 +387,7 @@ router.post("/rankProfit", async (req, res) => {
   }
 });
 
-router.post("/loanProfit", async (req, res) => {
+app.post("/loanProfit", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { loanProfit } = req.body;
@@ -400,7 +400,7 @@ router.post("/loanProfit", async (req, res) => {
   }
 });
 
-router.post("/monthlyStats", async (req, res) => {
+app.post("/monthlyStats", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { monthlyStats } = req.body;
@@ -413,7 +413,7 @@ router.post("/monthlyStats", async (req, res) => {
   }
 });
 
-router.delete("/users/:id", async (req, res) => {
+app.delete("/users/:id", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const userId = req.params.id;
@@ -429,7 +429,7 @@ router.delete("/users/:id", async (req, res) => {
   }
 });
 
-router.post("/sync", async (req, res) => {
+app.post("/sync", async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
     const { users, loans, notifications, budget, rankProfit, loanProfit, monthlyStats } = req.body;
@@ -479,15 +479,12 @@ router.post("/sync", async (req, res) => {
   }
 });
 
-// Mount router on both /api and root to handle different Vercel routing scenarios
-app.use("/api", router);
-app.use("/", router);
-
 // 404 handler for API routes
 app.use((req, res) => {
+  console.log(`API 404: ${req.method} ${req.url}`);
   res.status(404).json({ error: `API route not found: ${req.method} ${req.url}` });
 });
 
-// Export the router and app for different integration scenarios
-export { router };
+// Export the app for Vercel and other integration scenarios
+export { app as router };
 export default app;
